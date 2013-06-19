@@ -1,0 +1,159 @@
+#######################################
+# log_file_manager.py
+#
+#######################################
+
+#!/usr/bin/env python
+import os, sys, logging, glob, time, traceback
+from email.MIMEText import MIMEText
+from email.Header import Header
+from email.Utils import formatdate
+from operator import itemgetter
+import smtplib
+
+class LogFileManager(object):
+
+	__log_name 				= 'backuplog'
+	__output_log 			= False
+	__use_email				= False
+	__email_subject			= ''
+	__email_from			= ''
+	__email_to				= ''
+	__email_login_user		= ''
+	__email_login_password	= ''
+	__email_smtp_server		= ''
+	
+	def __new__( clsObj ):
+		if not hasattr( clsObj, "__instance__" ):
+			clsObj.__instance__ = super( LogFileManager, clsObj ).__new__( clsObj )
+		return clsObj.__instance__
+
+	#--------------------------------------
+	# delete_old_logfile
+	#--------------------------------------
+	def __delete_old_logfile( self, log_dir, backup_cnt ):
+		_find_name = self.__log_name + '*'
+		filenames = glob.glob( os.path.join( log_dir, _find_name ) )
+		file_lst = []
+		for file in filenames:
+			file = os.path.join( log_dir, file )
+			file_lst.append([file,os.stat( file ).st_size, time.ctime(os.stat(file).st_mtime)])
+
+		delete_cnt = len( file_lst ) - backup_cnt
+		
+		if delete_cnt <= 0:
+			return
+			
+		# order by old date
+		lst = sorted( file_lst, key=itemgetter(2), reverse = False )
+		
+#		for file in lst:
+#			print( file[ 0 ] + " | " + str( file[ 1 ] ) + " | " + file[ 2 ] )
+		
+		for file in lst:
+			os.remove( file[ 0 ] )
+			logging.debug( "removed log :" + file[ 0 ] )
+			delete_cnt -= 1
+			if delete_cnt == 0:
+				break
+
+	#--------------------------------------
+	# setup_backuplog
+	#--------------------------------------
+	def setup_backuplog( self, conf ):
+
+		_backuplog 		= conf.m_backup_log_dir + self.__log_name + conf.m_dump_date + ".log"
+		_current_dir 	= os.getcwd()
+		print( _current_dir )
+		_python_path 	= os.path.abspath( os.path.dirname(__file__) )
+		os.chdir( _python_path )
+		_backuplog 		= os.path.abspath( _backuplog )
+		os.chdir( _current_dir )
+
+		try:
+			logging.basicConfig(filename=_backuplog, level=logging.DEBUG, format="%(asctime)s [%(levelname)s]: %(message)s", filemode='w')
+		except:
+			self.output( 'Error', traceback.format_exc() )
+			return 1
+
+		__use_email 			= conf.m_use_email
+		__email_subject 		= conf.m_email_subject
+		__email_from			= conf.m_email_from
+		__email_to				= conf.m_email_to
+		__email_login_user		= conf.m_email_login_user
+		__email_login_password 	= conf.m_email_login_password
+		__email_smtp_server 	= conf.m_email_smtp_server
+		__email_port 			= conf.m_email_port
+
+		self.__output_log 		= True
+
+		self.output( 'Debug', "make logfile:\t" + _backuplog )
+		self.output( 'Debug', "Backup Start" )
+		conf.m_backup_log_dir = _backuplog
+
+		# delete old log
+		self.__delete_old_logfile( conf.m_backup_log_dir, conf.m_backup_log_cnt )
+		
+		return 0
+		
+	#--------------------------------------
+	# shutdown
+	#--------------------------------------
+	def shutdown( self ):
+		logging.shutdown()
+	
+	#--------------------------------------
+	# sendErrorMail
+	#--------------------------------------
+	def send_mail( self, mailtext ):
+		
+		if __use_email is False:
+			return
+		
+		msg 			= MIMEText(mailtext.encode('utf-8'),'plain','utf-8')
+		msg['Subject']	= Header( __email_subject,'utf-8' )
+		msg['From']		= __email_from
+		msg['To']		= __email_to
+		msg['Date']		= formatdate()
+
+		sendmail = smtplib.SMTP( email_smtp_server, email_port )
+		sendmail.ehlo()
+		sendmail.starttls()
+		sendmail.ehlo()
+		sendmail.login( email_login_user, email_login_password )
+		sendmail.sendmail(msg['From'],msg['To'],msg.as_string())
+
+		exit()
+			
+	#--------------------------------------
+	# __read_backup_attributes
+	#--------------------------------------
+	def set_currect_dir( self ):
+		# change directory to script directory
+		os.chdir( os.path.abspath( os.path.dirname(__file__) ) )
+		_current_dir = os.getcwd()
+		self.output( 'Debug', "Current Directory:" + _current_dir )
+
+	#--------------------------------------
+	# __logging_file
+	#--------------------------------------
+	def __logging_file( self, error_type, message ):
+		if error_type == 'Debug':
+			logging.debug( message )
+		elif error_type == 'Warning':
+			logging.warning( message )
+		elif error_type == 'Error':
+			logging.error( message )
+#			self.send_mail( message )
+			sys.exit()
+#		_output_message = "[" + error_type +"]: " + message
+#		print( _output_message )
+
+	#--------------------------------------
+	# output
+	#--------------------------------------
+	def output( self, error_type, message ):
+		self.__logging_file( error_type, message )
+		
+
+
