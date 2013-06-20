@@ -11,7 +11,8 @@ class GitlabConfig( object ):
 
 	__config_file = '/home/git/gitlab/config/gitlab.yml'
 
-	m_backup_path = '/home/git/gitlab/tmp/backups'
+	m_backup_path 	= '/home/git/gitlab/tmp/backups'
+	m_host_name		= ''
 
 	#--------------------------------------
 	# YAMLドキュメントを読み込む
@@ -26,7 +27,8 @@ class GitlabConfig( object ):
 		string = string.decode('utf8')
 		data = yaml.load(string)
 		
-		self.m_backup_path = data[ 'production' ][ 'backup' ][ 'path' ]
+		self.m_backup_path 	= data[ 'production' ][ 'backup' ][ 'path' ]
+		self.m_host_name	= data[ 'production' ][ 'gitlab' ][ 'host' ]
 		
 		self.m_backup_path = os.path.abspath( self.m_backup_path )
 

@@ -25,8 +25,6 @@ class ConfigFile(object):
 	m_email_subject 		= ''
 	m_email_from			= ''
 	m_email_to				= ''
-	m_email_login_user		= ''
-	m_email_login_password 	= ''
 	m_email_smtp_server		= ''
 	m_email_port			= 25
 	# remote_backup
@@ -44,7 +42,7 @@ class ConfigFile(object):
 	m_backup_password 	= ''
 	
 	m_dump_date			= '00-00-00-00-00'
-	
+
 	#--------------------------------------
 	# constractor
 	#--------------------------------------
@@ -56,7 +54,6 @@ class ConfigFile(object):
 	#--------------------------------------
 	def __output_config( self ):
 		self.__debug_log.output( 'Debug', "Confirm Settings---------------" )
-		self.__debug_log.output( 'Debug', "ROOT_USER_PASS:\t" 	+ self.m_root_pass )
 		self.__debug_log.output( 'Debug', "BACKUP_LOG_DIR:\t" 	+ self.m_backup_log_dir )
 		self.__debug_log.output( 'Debug', "BACKUP_CNT:\t\t" 		+ str( self.m_backup_log_cnt ) )
 		
@@ -72,8 +69,6 @@ class ConfigFile(object):
 			self.__debug_log.output( 'Debug', "\tEMAIL_SUBJECT:\t" 			+ self.m_email_subject )
 			self.__debug_log.output( 'Debug', "\tEMAIL_FROM:\t" 			+ self.m_email_from )
 			self.__debug_log.output( 'Debug', "\tEMAIL_TO:\t" 				+ self.m_email_to )
-			self.__debug_log.output( 'Debug', "\tEMAIL_LOGIN_USER:\t" 		+ self.m_email_login_user )
-			self.__debug_log.output( 'Debug', "\tEMAIL_LOGIN_PASSWORD:\t" 	+ self.m_email_login_password )
 			self.__debug_log.output( 'Debug', "\tEMAIL_SMTP_SERVER:\t" 		+ self.m_email_smtp_server )
 			self.__debug_log.output( 'Debug', "\tEMAIL_PORT:\t" 			+ str( self.m_email_port ) )
 			
@@ -139,10 +134,6 @@ class ConfigFile(object):
 			self.m_email_from			= conf.get("email_attribute", "email_from")
 		if conf.has_option( "email_attribute", "email_to"):
 			self.m_email_to				= conf.get("email_attribute", "email_to")
-		if conf.has_option( "email_attribute", "email_login_user"):
-			self.m_email_login_user		= conf.get("email_attribute", "email_login_user")
-		if conf.has_option( "email_attribute", "email_login_password"):
-			self.m_email_login_password	= conf.get("email_attribute", "email_login_password")
 		if conf.has_option( "email_attribute", "email_smtp_server"):
 			self.m_email_smtp_server	= conf.get("email_attribute", "email_smtp_server")
 		if conf.has_option( "email_attribute", "email_port"):

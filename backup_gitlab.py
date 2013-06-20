@@ -22,6 +22,17 @@ from config_file import*
 from log_file_manager import *
 from gitlab_config import *
 
+GITLAB_PATH = '/home/git/gitlab'
+
+#--------------------------------------
+# execute backup
+#--------------------------------------
+def execute_backup( root_pass ):
+	do_cmd = pexpect.spawn( 'sudo -u git -H bundle exec rake gitlab:backup:create RAILS_ENV=production' )
+	do_cmd.expect( '[sudo] *:' )
+	do_cmd.sendline( root_pass )
+	do_cmd.close()
+
 #--------------------------------------
 # delete_backup_files
 #--------------------------------------
@@ -172,14 +183,13 @@ if __name__ == "__main__":
 		_logger.shutdown()
 		sys.exit()
 	
+	_logger.output( 'Debug', "Change Current Directory: " + GITLAB_PATH )
 	# change current directory
-	os.chdir( '/home/git/gitlab' )
+	os.chdir( GITLAB_PATH )
 	
 	# execute backup
-	do_cmd = pexpect.spawn( 'sudo -u git -H bundle exec rake gitlab:backup:create RAILS_ENV=production' )
-	do_cmd.expect( '[sudo] *:' )
-	do_cmd.sendline( conf.m_root_pass )
-	do_cmd.close()
+	_logger.output( 'Debug', "Start execute backup..." )
+	execute_backup( conf.m_root_pass )
 
 	# get backup directory from gitlab setting file
 	gitlab_conf = GitlabConfig()
@@ -199,9 +209,15 @@ if __name__ == "__main__":
 		if result == 1:
 			_logger.shutdown()
 			sys.exit()
-			
+
 	if conf.m_use_remote_backup is False or conf.m_use_file_server is False:
 		delete_local_backup( conf, gitlab_conf.m_backup_path )
-
+	
+	_logger.output( 'Debug', "End Backup" )
+	
+	_message = 'GitLab backup was Success!\nURL: http://' + gitlab_conf.m_host_name + '/\n'
+	
+	_logger.send_mail( _message )
+	
 	_logger.shutdown()
 	
