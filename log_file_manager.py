@@ -56,7 +56,7 @@ class LogFileManager(object):
 		
 		for file in lst:
 			os.remove( file[ 0 ] )
-			logging.debug( "removed log :" + file[ 0 ] )
+			self.output( 'Debug', "removed log :" + file[ 0 ] )
 			delete_cnt -= 1
 			if delete_cnt == 0:
 				break
@@ -120,9 +120,17 @@ class LogFileManager(object):
 		msg.attach(body)
 		
 		attachment 		= MIMEBase( 'text', 'plain' )
-		file = open( self.__output_log_path )
-		attachment.set_payload( file.read() )
-		file.close()
+		
+		file = None
+		try:
+			file = open( self.__output_log_path )
+			attachment.set_payload( file.read() )
+		except:
+			print( 'Error: ' + traceback.format_exc() )
+		finally:
+			if file != None:
+				file.close()
+
 		Encoders.encode_base64( attachment )
 		msg.attach( attachment )
 		attachment.add_header("Content-Disposition","attachment", filename=self.__output_log_path )

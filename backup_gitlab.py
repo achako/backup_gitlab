@@ -22,22 +22,30 @@ from config_file import*
 from log_file_manager import *
 from gitlab_config import *
 
-GITLAB_PATH = '/home/git/gitlab'
+GITLAB_PATH = '/home/git/gitlab/'
 
 #--------------------------------------
 # execute backup
 #--------------------------------------
 def execute_backup( root_pass ):
+	# change current directory
+	os.chdir( GITLAB_PATH )
+
+	_logger = LogFileManager()
+	_logger.output( 'Debug', "Make Backup File Start..." )
 	do_cmd = pexpect.spawn( 'sudo -u git -H bundle exec rake gitlab:backup:create RAILS_ENV=production' )
 	do_cmd.expect( '[sudo] *:' )
 	do_cmd.sendline( root_pass )
 	do_cmd.close()
+	_logger.output( 'Debug', "Make Backup File End" )
 
 #--------------------------------------
 # delete_backup_files
 #--------------------------------------
 def delete_backup_files( sftp_connection, remote_dir, backup_del_size ):
 	
+	_logger = LogFileManager()
+
 	# count backupfiles in remote directory
 	filenames = sftp_connection.listdir( remote_dir )
 
@@ -96,11 +104,12 @@ def send_remote_machine( conf, backup_dir ):
 		
 			if _file.endswith( '_gitlab_backup.tar' ) is False:
 				continue
-				
+			
+			_send_path = backup_dir + _file
+			
 			_remote_path = _remote_dir + os.path.basename( _file )
-			_logger.output( 'Debug', "Send BackupFile" + _file +" to " + _remote_path )
-			_send_file = backup_dir + _file
-			sftp_connection.put( _send_file, _remote_path )
+			_logger.output( 'Debug', "Send BackupFile" + _send_path +" to " + _remote_path )
+			sftp_connection.put( _send_path, _remote_path )
 
 	except:
 		_logger.output( 'Error', "Failed to send backupfile to remote server" )
@@ -184,8 +193,6 @@ if __name__ == "__main__":
 		sys.exit()
 	
 	_logger.output( 'Debug', "Change Current Directory: " + GITLAB_PATH )
-	# change current directory
-	os.chdir( GITLAB_PATH )
 	
 	# execute backup
 	_logger.output( 'Debug', "Start execute backup..." )
@@ -209,9 +216,6 @@ if __name__ == "__main__":
 		if result == 1:
 			_logger.shutdown()
 			sys.exit()
-
-	if conf.m_use_remote_backup is False or conf.m_use_file_server is False:
-		delete_local_backup( conf, gitlab_conf.m_backup_path )
 	
 	_logger.output( 'Debug', "End Backup" )
 	
