@@ -70,6 +70,7 @@ class LogFileManager(object):
 		_python_path 	= os.path.abspath( os.path.dirname(__file__) )
 		os.chdir( _python_path )
 		_backuplog 		= os.path.abspath( _backuplog )
+		conf.m_backup_log_dir =  os.path.abspath( conf.m_backup_log_dir )
 		os.chdir( _current_dir )
 		
 		try:
@@ -138,9 +139,6 @@ class LogFileManager(object):
 		sendmail = None
 		try:
 			sendmail = smtplib.SMTP( self.__email_smtp_server, self.__email_port )
-			sendmail.ehlo()
-			sendmail.starttls()
-			sendmail.ehlo()
 			sendmail.sendmail( msg['From'], msg['To'], msg.as_string() )
 		except:
 			print( 'Error: ' + traceback.format_exc() )

@@ -16,7 +16,7 @@
 # zip  directory
 # send to remote machine
 
-import os, shutil, paramiko, traceback, pexpect
+import os, shutil, paramiko, traceback, pexpect, sys
 from subprocess import check_call
 from config_file import*
 from log_file_manager import *
@@ -28,15 +28,34 @@ GITLAB_PATH = '/home/git/gitlab/'
 # execute backup
 #--------------------------------------
 def execute_backup( root_pass ):
-	# change current directory
-	os.chdir( GITLAB_PATH )
+	global GITLAB_PATH
 
 	_logger = LogFileManager()
 	_logger.output( 'Debug', "Make Backup File Start..." )
-	do_cmd = pexpect.spawn( 'sudo -u git -H bundle exec rake gitlab:backup:create RAILS_ENV=production' )
-	do_cmd.expect( '[sudo] *:' )
-	do_cmd.sendline( root_pass )
-	do_cmd.close()
+	
+	# change current directory
+	os.chdir( GITLAB_PATH )
+	
+	do_cmd = None
+	try:
+		_logger.output( 'Debug', 'sudo -u git -H bundle exec rake gitlab:backup:create RAILS_ENV=production' )
+		do_cmd = pexpect.spawn( 'sudo -u git -H bundle exec rake gitlab:backup:create RAILS_ENV=production' )
+		i = -1
+		if do_cmd != None:
+			do_cmd.logfile = sys.stdout
+			i = do_cmd.expect( ['[sudo] *:', pexpect.EOF], timeout=120 )
+			if i == 0:
+				_logger.output( 'Debug', 'i == 0, enter password' )
+				do_cmd.sendline( root_pass )
+				do_cmd.expect( pexpect.EOF )
+	except:
+		_logger.output( 'Error', traceback.format_exc() )
+	finally:
+		if do_cmd != None:
+			do_cmd.close()
+
+#	i = os.system( "sudo -u git -H bundle exec rake gitlab:backup:create RAILS_ENV=production" )
+
 	_logger.output( 'Debug', "Make Backup File End" )
 
 #--------------------------------------
@@ -101,7 +120,8 @@ def send_remote_machine( conf, backup_dir ):
 		_files = os.listdir( backup_dir )
 		# send files in backup directory
 		for _file in _files:
-		
+			_logger.output( 'Debug', "file: " + backup_dirs + _file )
+			
 			if _file.endswith( '_gitlab_backup.tar' ) is False:
 				continue
 			
@@ -163,18 +183,34 @@ def send_file_server( conf, backup_dir ):
 #--------------------------------------
 # delete_local_backup
 #--------------------------------------
-def delete_local_backup( conf, backup_dir ):
+def delete_local_backup( conf, backup_dir, root_pass ):
+
+	_logger = LogFileManager()
+	_logger.output( 'Debug', "Delete Local Backup File Start..." )
 
 	_files = os.listdir( backup_dir )
 	for _file in _files:
 		_del_file = backup_dir + _file
-		cmd_string = 'sudo rm ' + _del_file
+		_logger.output( 'Debug', "delete " + _del_file )
+		cmd_string = 'sudo rm -rf ' + _del_file
 
-		do_cmd = pexpect.spawn( cmd_string )
-		do_cmd.expect( '[sudo] *:' )
-		do_cmd.sendline( conf.m_root_pass )
-		do_cmd.close()
-		os.remove( _del_file )
+		do_cmd = None
+		try:
+			_logger.output( 'Debug', cmd_string )
+			do_cmd = pexpect.spawn( cmd_string )
+			i = -1
+			if do_cmd != None:
+				do_cmd.logfile = sys.stdout
+				i = do_cmd.expect( ['[sudo] *:', pexpect.EOF] )
+				if i == 0:
+					do_cmd.sendline( root_pass )
+		except:
+			_logger.output( 'Error', traceback.format_exc() )
+		finally:
+			if do_cmd != None:
+				do_cmd.close()
+
+	_logger.output( 'Debug', "Delete Local Backup File End" )
 
 #--------------------------------------
 # main
@@ -195,7 +231,6 @@ if __name__ == "__main__":
 	_logger.output( 'Debug', "Change Current Directory: " + GITLAB_PATH )
 	
 	# execute backup
-	_logger.output( 'Debug', "Start execute backup..." )
 	execute_backup( conf.m_root_pass )
 
 	# get backup directory from gitlab setting file
@@ -216,6 +251,8 @@ if __name__ == "__main__":
 		if result == 1:
 			_logger.shutdown()
 			sys.exit()
+			
+	delete_local_backup( conf, gitlab_conf.m_backup_path, conf.m_root_pass )
 	
 	_logger.output( 'Debug', "End Backup" )
 	
