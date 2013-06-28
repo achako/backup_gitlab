@@ -47,7 +47,7 @@ def execute_backup( root_pass ):
 			if i == 0:
 				_logger.output( 'Debug', 'i == 0, enter password' )
 				do_cmd.sendline( root_pass )
-				do_cmd.expect( pexpect.EOF )
+				do_cmd.expect( pexpect.EOF, timeout=1200 )
 	except:
 		_logger.output( 'Error', traceback.format_exc() )
 	finally:
@@ -62,9 +62,9 @@ def execute_backup( root_pass ):
 # delete_backup_files
 #--------------------------------------
 def delete_backup_files( sftp_connection, remote_dir, backup_del_size ):
-	
 	_logger = LogFileManager()
-
+	_logger.output( 'Debug', "delete_backup_files Start...." )
+	
 	# count backupfiles in remote directory
 	filenames = sftp_connection.listdir( remote_dir )
 
@@ -80,7 +80,7 @@ def delete_backup_files( sftp_connection, remote_dir, backup_del_size ):
 	_logger.output( 'Debug', "BackupDirectory's total size: " + str( total_size ) + "(Byte)" )
 	_logger.output( 'Debug', "DeleteBackupSize: " + str( backup_del_size * 1000000 ) + "(Byte)" )
 	
-	if total_size >= backup_del_size * 1000000:
+	if total_size/1000000 >= backup_del_size:
 		_logger.output( 'Debug', "total size over DeleteBackupSize: deete start..." )
 		# order by old date
 		lst = sorted( file_lst, key=itemgetter(2), reverse = True )
@@ -92,6 +92,8 @@ def delete_backup_files( sftp_connection, remote_dir, backup_del_size ):
 				_logger.debug( "removed backup:" + file[ 0 ] )
 			cnt += 1
 		_logger.output( 'Debug', "Delete backup file end...." )
+
+	_logger.output( 'Debug', "delete_backup_files End...." )
 
 #--------------------------------------
 # send_remote_machine
@@ -105,9 +107,13 @@ def send_remote_machine( conf, backup_dir ):
 	client = None
 	sftp_connection = None
 	try:
+		_logger.output( 'Debug', "client = paramiko.SSHClient()" )
 		client = paramiko.SSHClient()
+		_logger.output( 'Debug', "client.set_missing_host_key_policy" )
 		client.set_missing_host_key_policy( paramiko.AutoAddPolicy() )
+		_logger.output( 'Debug', "client.connect" )
 		client.connect( conf.m_remote_host, port=conf.m_remote_port, username=conf.m_remote_user, password=conf.m_remote_password )
+		_logger.output( 'Debug', "client.open_sftp()" )
 		sftp_connection = client.open_sftp()
 		
 		# curtail backup files
@@ -120,7 +126,7 @@ def send_remote_machine( conf, backup_dir ):
 		_files = os.listdir( backup_dir )
 		# send files in backup directory
 		for _file in _files:
-			_logger.output( 'Debug', "file: " + backup_dirs + _file )
+			_logger.output( 'Debug', "file: " + backup_dir + _file )
 			
 			if _file.endswith( '_gitlab_backup.tar' ) is False:
 				continue
@@ -132,8 +138,8 @@ def send_remote_machine( conf, backup_dir ):
 			sftp_connection.put( _send_path, _remote_path )
 
 	except:
-		_logger.output( 'Error', "Failed to send backupfile to remote server" )
 		_logger.output( 'Error', traceback.format_exc() )
+		_logger.output( 'Error', "Failed to send backupfile to remote server" )
 		return 1
 	finally:
 		if client:
@@ -204,6 +210,7 @@ def delete_local_backup( conf, backup_dir, root_pass ):
 				i = do_cmd.expect( ['[sudo] *:', pexpect.EOF] )
 				if i == 0:
 					do_cmd.sendline( root_pass )
+			do_cmd.expect( pexpect.EOF )
 		except:
 			_logger.output( 'Error', traceback.format_exc() )
 		finally:
