@@ -19,19 +19,19 @@
 
 * 必要なものをインストール
 	#### Python
-		* paramiko
+		paramiko
 			sudo apt-get install python-paramiko
-		* PyYAML
+		PyYAML
 			 sudo apt-get install python-yaml
-		* pexpectL
+		pexpectL
 			sudo apt-get install python-pexpect
 		
 	#### NASに転送する場合
 		sudo apt-get install samba
 		sudo apt-get install  smbclient
 		sudo aptitude -y install sysv-rc-conf    ←smbdの自動起動用
-*設定ファイルに必要事項を入力する(設定ファイルの説明参照)
-*一定時間ごとにスクリプトを走らせるようにする
+* 設定ファイルに必要事項を入力する(設定ファイルの説明参照)
+* 一定時間ごとにスクリプトを走らせるようにする
 	crontab -e    でエディタ立ち上げ
 	分	時	日	月	曜日	コマンド
  	*	2 	* 	 *	 1-7	python backup_gitlab.py
