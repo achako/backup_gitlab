@@ -18,7 +18,7 @@
 	git checkout master
 
 * 必要なものをインストール
-	# Python
+	#### Python
 		* paramiko
 			sudo apt-get install python-paramiko
 		* PyYAML
@@ -26,7 +26,7 @@
 		* pexpectL
 			sudo apt-get install python-pexpect
 		
-	# NASに転送する場合
+	#### NASに転送する場合
 		sudo apt-get install samba
 		sudo apt-get install  smbclient
 		sudo aptitude -y install sysv-rc-conf    ←smbdの自動起動用
