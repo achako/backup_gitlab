@@ -26,6 +26,7 @@
 
 #### 必要なものをインストール
 **Python**
+
 * paramiko
 
         sudo apt-get install python-paramiko
