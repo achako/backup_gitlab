@@ -102,6 +102,7 @@
 
 #### remote_backup
 他のPCにバックアップする場合はこちらを設定します
+
 * 他のPCにバックアップを保存する場合はTrueにします。(デフォルトはFalse)
 
         use_remote_backup=False
