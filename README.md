@@ -1,27 +1,23 @@
-//***********************************
-// GitLab Backup Script
-//**********************************
-GitLabを定期的にバックアップするためのスクリプトです。
+﻿## BackupGitLab
 
-//=================================
-// 各ファイルの説明
-//=================================
-settings.ini
+###BackupGitLabとは
+
+定期的にGitLabのバックアップを作成し、指定されたマシンに
+転送するスクリプトです。
+
+### 各ファイルの説明
+* settings.ini
 	バックアップクリプトの設定ファイルです。
-backup_gitlab.py
+* backup_gitlab.py
 	Gitlabのバックアップスクリプトです。
-
-
-//=================================
-// 設定手順
-//=================================
-
-・バックアップスクリプトをダウンロード
+	
+### 設定手順
+*バックアップスクリプトをダウンロード
 	git clone http://dev-rd-gitlab/dev-rd/backup_gitlab.git
 	masterブランチに切り替える
 	git checkout master
 
-・必要なものをインストール
+*必要なものをインストール
 	Python
 		//-----------------
 		// paramiko
@@ -40,8 +36,8 @@ backup_gitlab.py
 		sudo apt-get install samba
 		sudo apt-get install  smbclient
 		sudo aptitude -y install sysv-rc-conf    ←smbdの自動起動用
-・設定ファイルに必要事項を入力する(設定ファイルの説明参照)
-・一定時間ごとにスクリプトを走らせるようにする
+*設定ファイルに必要事項を入力する(設定ファイルの説明参照)
+*一定時間ごとにスクリプトを走らせるようにする
 	crontab -e    でエディタ立ち上げ
 	分	時	日	月	曜日	コマンド
  	*	2 	* 	 *	 1-7	python backup_gitlab.py
@@ -49,13 +45,10 @@ backup_gitlab.py
 	実行間隔や実行時間は各自で調整
 	実行日時の設定は以下のリンクを参照
 	http://www.express.nec.co.jp/linux/distributions/knowledge/system/crond.html
-
-
-//=================================
-// setting.ini
-//=================================
+	
+### 設定ファイル(setting.ini)
 [backup_attribute]
-# set root user's password( default: root )
+# root ユーザーのパスワード( default: root )
 root_user_pass=
 # バックアップデータの数が指定されたサイズ(MByte)を超えたら半分のデータを削除します
 backup_del_size=1000
