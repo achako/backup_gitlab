@@ -15,7 +15,7 @@
     Gitlabのバックアップスクリプトです。
     
 ### 設定手順
-####バックアップスクリプトをダウンロード
+#### バックアップスクリプトをダウンロード
 * クローンする
 
     git clone http://dev-rd-gitlab/dev-rd/backup_gitlab.git
@@ -24,7 +24,7 @@
 
     git checkout master
 
-####必要なものをインストール
+#### 必要なものをインストール
 **Python**
 * paramiko
 
@@ -41,8 +41,8 @@
         sudo apt-get install samba
         sudo apt-get install  smbclient
         sudo aptitude -y install sysv-rc-conf    ←smbdの自動起動用
-####設定ファイルに必要事項を入力する(設定ファイルの説明参照)
-####一定時間ごとにスクリプトを走らせるようにする
+#### 設定ファイルに必要事項を入力する(設定ファイルの説明参照)
+#### 一定時間ごとにスクリプトを走らせるようにする
 
         crontab -e    でエディタ立ち上げ
         分      時      日       月       曜日    コマンド
