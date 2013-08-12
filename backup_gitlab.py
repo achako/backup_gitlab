@@ -1,4 +1,4 @@
-#######################################
+﻿#######################################
 # backup_gitlab.py
 #
 #######################################
@@ -16,256 +16,75 @@
 # zip  directory
 # send to remote machine
 
-import os, shutil, paramiko, traceback, pexpect, sys
-from subprocess import check_call
-from config_file import*
+import os, shutil, traceback, sys
 from log_file_manager import *
-from gitlab_config import *
 
-GITLAB_PATH = '/home/git/gitlab/'
+class BackupGitLab(object):
 
-#--------------------------------------
-# execute backup
-#--------------------------------------
-def execute_backup( root_pass ):
-	global GITLAB_PATH
+	#--------------------------------------
+	# fields
+	#--------------------------------------
+	GITLAB_PATH = '/home/git/gitlab/'
 
-	_logger = LogFileManager()
-	_logger.output( 'Debug', "Make Backup File Start..." )
-	
-	# change current directory
-	os.chdir( GITLAB_PATH )
-	
-	do_cmd = None
-	try:
-		_logger.output( 'Debug', 'sudo -u git -H bundle exec rake gitlab:backup:create RAILS_ENV=production' )
-		do_cmd = pexpect.spawn( 'sudo -u git -H bundle exec rake gitlab:backup:create RAILS_ENV=production' )
-		i = -1
-		if do_cmd != None:
-			do_cmd.logfile = sys.stdout
-			i = do_cmd.expect( ['[sudo] *:', pexpect.EOF], timeout=120 )
-			if i == 0:
-				_logger.output( 'Debug', 'i == 0, enter password' )
-				do_cmd.sendline( root_pass )
-				do_cmd.expect( pexpect.EOF, timeout=1200 )
-	except:
-		_logger.output( 'Error', traceback.format_exc() )
-	finally:
-		if do_cmd != None:
-			do_cmd.close()
-
-#	i = os.system( "sudo -u git -H bundle exec rake gitlab:backup:create RAILS_ENV=production" )
-
-	_logger.output( 'Debug', "Make Backup File End" )
-
-#--------------------------------------
-# delete_backup_files
-#--------------------------------------
-def delete_backup_files( sftp_connection, remote_dir, backup_del_size ):
-	_logger = LogFileManager()
-	_logger.output( 'Debug', "delete_backup_files Start...." )
-	
-	# count backupfiles in remote directory
-	filenames = sftp_connection.listdir( remote_dir )
-
-	# get total size of remote directory
-	# set fields of time & filesize
-	file_lst = []
-	total_size = 0
-	for file in filenames:
-		file = os.path.join( remote_dir, file )
-		file_lst.append([file,sftp_connection.stat( file ).st_size, time.ctime( sftp_connection.stat(file).st_mtime )])
-		total_size += sftp_connection.stat( file ).st_size
-
-	_logger.output( 'Debug', "BackupDirectory's total size: " + str( total_size ) + "(Byte)" )
-	_logger.output( 'Debug', "DeleteBackupSize: " + str( backup_del_size * 1000000 ) + "(Byte)" )
-	
-	if total_size/1000000 >= backup_del_size:
-		_logger.output( 'Debug', "total size over DeleteBackupSize: deete start..." )
-		# order by old date
-		lst = sorted( file_lst, key=itemgetter(2), reverse = True )
-		# if total size is larger than BACKUP_DEL_SIZE, delete a half of files
-		cnt = 0
-		for file in lst:
-			if cnt % 2 == 1:
-				sftp_connection.remove( file[ 0 ] )
-				_logger.debug( "removed backup:" + file[ 0 ] )
-			cnt += 1
-		_logger.output( 'Debug', "Delete backup file end...." )
-
-	_logger.output( 'Debug', "delete_backup_files End...." )
-
-#--------------------------------------
-# send_remote_machine
-#--------------------------------------
-def send_remote_machine( conf, backup_dir ):
-
-	_logger = LogFileManager()
-
-	_logger.output( 'Debug', "Start to send backup file( remote backup )...." )
-	# SFTP by using paramiko
-	client = None
-	sftp_connection = None
-	try:
-		_logger.output( 'Debug', "client = paramiko.SSHClient()" )
-		client = paramiko.SSHClient()
-		_logger.output( 'Debug', "client.set_missing_host_key_policy" )
-		client.set_missing_host_key_policy( paramiko.AutoAddPolicy() )
-		_logger.output( 'Debug', "client.connect" )
-		client.connect( conf.m_remote_host, port=conf.m_remote_port, username=conf.m_remote_user, password=conf.m_remote_password )
-		_logger.output( 'Debug', "client.open_sftp()" )
-		sftp_connection = client.open_sftp()
+	#--------------------------------------
+	# constractor
+	#--------------------------------------
+	def __init__( self ):
+		self.__logger 		= LogFileManager()
 		
-		# curtail backup files
-		delete_backup_files( sftp_connection, conf.m_remote_dir, conf.m_backup_del_size )
+	#--------------------------------------
+	# backup
+	#--------------------------------------
+	def backup( self, copy_dir, backup_dir ):
 		
-		_remote_dir = conf.m_remote_dir
-		if _remote_dir.endswith( "/" ) is False:
-			_remote_dir += "/"
-
-		_files = os.listdir( backup_dir )
-		# send files in backup directory
-		for _file in _files:
-			_logger.output( 'Debug', "file: " + backup_dir + _file )
-			
-			if _file.endswith( '_gitlab_backup.tar' ) is False:
-				continue
-			
-			_send_path = backup_dir + _file
-			
-			_remote_path = _remote_dir + os.path.basename( _file )
-			_logger.output( 'Debug', "Send BackupFile" + _send_path +" to " + _remote_path )
-			sftp_connection.put( _send_path, _remote_path )
-
-	except:
-		_logger.output( 'Error', traceback.format_exc() )
-		_logger.output( 'Error', "Failed to send backupfile to remote server" )
-		return 1
-	finally:
-		if client:
-			client.close()
-		if sftp_connection:
-			sftp_connection.close()
-
-	_logger.output( 'Debug', "End to send backup file...." )
-	
-	return 0
-
-#--------------------------------------
-# send_file_server
-#--------------------------------------
-def send_file_server( conf, backup_dir ):
-	_logger = LogFileManager()
-
-	_logger.output( 'Debug', "Start to send backup file( file server )...." )
-
-	strcommand = ""
-
-	_files = os.listdir( backup_dir )
-	# send files in backup directory
-	for _file in _files:
-		_send_file =  backup_dir + _file
-		strcommand = "lcd " + backup_dir +";put " + _send_file + ";"
-
-		smb_conf = ""
-
-		if conf.m_backup_user != "" and conf.m_backup_password != "":
-			smb_conf = conf.m_backup_password + " -U " + conf.m_backup_user + " "
-		if conf.m_backup_dir != "":
-			smb_conf += "-D " + conf.m_backup_dir + " "
-
-		smbcommand = "smbclient " + conf.m_backup_host + " " + smb_conf + "-c \"" + strcommand + "quit\""
-		_logger.output( 'Debug', "smbcommand : " + smbcommand )
-
-		result = os.system( smbcommand )
-		
-		if result == 1:
-			_logger.output( 'Error', "Failed to send backupfile to file server" )
-			_logger.output( 'Error', traceback.format_exc() )
+		if self.__execute_backup() == 1:
 			return 1
-	
-	return 0
-
-#--------------------------------------
-# delete_local_backup
-#--------------------------------------
-def delete_local_backup( conf, backup_dir, root_pass ):
-
-	_logger = LogFileManager()
-	_logger.output( 'Debug', "Delete Local Backup File Start..." )
-
-	_files = os.listdir( backup_dir )
-	for _file in _files:
-		_del_file = backup_dir + _file
-		_logger.output( 'Debug', "delete " + _del_file )
-		cmd_string = 'sudo rm -rf ' + _del_file
-
-		do_cmd = None
-		try:
-			_logger.output( 'Debug', cmd_string )
-			do_cmd = pexpect.spawn( cmd_string )
-			i = -1
-			if do_cmd != None:
-				do_cmd.logfile = sys.stdout
-				i = do_cmd.expect( ['[sudo] *:', pexpect.EOF] )
-				if i == 0:
-					do_cmd.sendline( root_pass )
-			do_cmd.expect( pexpect.EOF )
-		except:
-			_logger.output( 'Error', traceback.format_exc() )
-		finally:
-			if do_cmd != None:
-				do_cmd.close()
-
-	_logger.output( 'Debug', "Delete Local Backup File End" )
-
-#--------------------------------------
-# main
-#--------------------------------------
-if __name__ == "__main__":
-
-	# init logger
-	_logger = LogFileManager()
-	_logger.set_currect_dir()
-
-	conf 	= ConfigFile()
-	result	= conf.read_configuration()
-
-	if result == 1:
-		_logger.shutdown()
-		sys.exit()
-	
-	_logger.output( 'Debug', "Change Current Directory: " + GITLAB_PATH )
-	
-	# execute backup
-	execute_backup( conf.m_root_pass )
-
-	# get backup directory from gitlab setting file
-	gitlab_conf = GitlabConfig()
-	if gitlab_conf.readGitLabConfig() == 1:
-		_logger.shutdown()
-		sys.exit()
-	
-	#send remote backup pc
-	if conf.m_use_remote_backup is True:
-		result = send_remote_machine( conf, gitlab_conf.m_backup_path )
-		if result == 1:
-			_logger.shutdown()
-			sys.exit()
-
-	if conf.m_use_file_server is True:
-		result = send_file_server( conf, gitlab_conf.m_backup_path )
-		if result == 1:
-			_logger.shutdown()
-			sys.exit()
 			
-	delete_local_backup( conf, gitlab_conf.m_backup_path, conf.m_root_pass )
+		if self.__copy_backup( copy_dir, backup_dir ) == 1:
+			return 1
+		
+		return 0
+
+	#--------------------------------------
+	# execute backup
+	#--------------------------------------
+	def __execute_backup( self ):
+		self.__logger.output( 'Debug', "Make GitLab Backup File Start..." )
+		
+		# change current directory
+		os.chdir( self.GITLAB_PATH )
+		
+		try:
+			self.__logger.output( 'Debug', 'sudo -u git -H bundle exec rake gitlab:backup:create RAILS_ENV=production' )
+			os.system( 'bundle exec rake gitlab:backup:create RAILS_ENV=production' );
+		except:
+			self.__logger.output( 'Error', traceback.format_exc() )
+			return 1
+
+		self.__logger.output( 'Debug', "Make GieLab Backup File End" )
+		
+		return 0
 	
-	_logger.output( 'Debug', "End Backup" )
-	
-	_message = 'GitLab backup was Success!\nURL: http://' + gitlab_conf.m_host_name + '/\n'
-	
-	_logger.send_mail( _message )
-	
-	_logger.shutdown()
+	#--------------------------------------
+	# copy backup
+	#--------------------------------------
+	def __copy_backup( self, copy_dir, backup_dir ):
+		self.__logger.output( 'Debug', "Copy GitLab Backup File Start..." )
+		
+		file_lst = os.listdir( backup_dir )
+		lst = sorted( file_lst, key=itemgetter(2), reverse = True )
+		if backup_dir.endswith( "/" ) is False:
+			backup_dir += "/"
+		filename = backup_dir + lst[0]
+		
+		cmd_string= 'cp -r ' + filename + ' ' + copy_dir
+		try:
+			self.__logger.output( 'Debug', cmd_string )
+			os.system( cmd_string )
+		except:
+			self.__logger.output( 'Error', traceback.format_exc() )
+			return 1
+		self.__logger.output( 'Debug', "Copy GitLab Backup File End..." )
+		
+		return 0
 	

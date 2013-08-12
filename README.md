@@ -33,9 +33,6 @@
 * PyYAML
 
         sudo apt-get install python-yaml
-* pexpectL
-
-        sudo apt-get install python-pexpect
         
 **NASに転送する場合**
 
@@ -56,10 +53,6 @@
 ### 設定ファイル(setting.ini)
 
 #### backup_attribute
-
-* root ユーザーのパスワード( default: root )
-
-        root_user_pass=
 
 * バックアップデータの数が指定されたサイズ(MByte)を超えたら半分のデータを削除します
 
@@ -148,3 +141,18 @@ NASなどのファイルサーバーにsmbclientを使って転送します
 * アクセス制限がある場合はユーザーIDのパスワードを設定します
 
         backup_password=
+        
+#### git_svn_bridge_backup
+
+* git-svn-bridgeもバックアップする場合はTrueにします
+	
+	backup_bridge=True
+
+* git-svn-bridgeのリポジトリのパスを指定します。「,」区切りで複数指定できます
+	
+	bridge_repos=
+
+* 暗号キーの設定。github-git-svn-bridge-utils/git-svn-auth-manager/src/EncryptedUserRepository.cs内のprivate const string ENCRYPTION_KEY = "ここの部分";を入力する
+
+	encryption_key=
+

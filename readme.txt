@@ -108,3 +108,12 @@ backup_user=
 # アクセス制限がある場合はユーザーIDのパスワードを設定します
 backup_password=
 
+# git-svn-bridgeのデータも一緒にバックアップするための設定です
+[git_svn_bridge_backup]
+# バックアップする場合はTrueにします
+backup_bridge=True
+# バックアップするgit-svn-bridgeのリポジトリを指定します。「,」区切りで複数指定可能です
+bridge_repos=
+# 暗号キーの設定。github-git-svn-bridge-utils/git-svn-auth-manager/src/EncryptedUserRepository.cs内のprivate const string ENCRYPTION_KEY = "ここの部分";を入力する
+encryption_key=
+

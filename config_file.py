@@ -12,9 +12,8 @@ from log_file_manager import*
 class ConfigFile(object):
 	
 	__config_file 	= 'settings.ini'
+	m_copy_dir 		= 'backup_tmp/gitlab_backup'
 
-	# root user password
-	m_root_pass			= 'root';
 	# backup_attribute
 	m_backup_del_size	= 1000
 	#log_attribute
@@ -40,14 +39,23 @@ class ConfigFile(object):
 	m_backup_dir 		= ''
 	m_backup_user 		= ''
 	m_backup_password 	= ''
-	
+	# git_svn_bridge_backup
+	m_backup_bridge 	= False
+	m_bridge_repos		= []
+	m_encryption_key	= ''
+
 	m_dump_date			= '00-00-00-00-00'
 
 	#--------------------------------------
 	# constractor
 	#--------------------------------------
 	def __init__( self ):
+		# set dump_date
+		now = datetime.datetime.now()
+		self.m_dump_date = now.strftime("%Y-%m-%d-%H-%M")		
 		self.__debug_log 	= LogFileManager()
+		self.m_copy_dir		= os.path.abspath( os.path.dirname(__file__) ) + '/' + self.m_copy_dir + self.m_dump_date
+		os.makedirs( self.m_copy_dir )
 	
 	#--------------------------------------
 	# output_config
@@ -78,8 +86,36 @@ class ConfigFile(object):
 			self.__debug_log.output( 'Debug', "\tBACKUP_DIR:\t" 		+ self.m_backup_dir )
 			self.__debug_log.output( 'Debug', "\tBACKUP_USER:\t" 		+ self.m_backup_user )
 			self.__debug_log.output( 'Debug', "\tBACKUP_PASSWORD:t" 	+ self.m_backup_password )
+			
+		self.__debug_log.output( 'Debug', "Backup Git-Svn-Bridge:\t" + str( self.m_backup_bridge ) )
+		if self.m_backup_bridge is True:
+			for repo in self.m_bridge_repos:
+				self.__debug_log.output( 'Debug', "\tBridgeRepositories:\t" + repo )
+			self.__debug_log.output( 'Debug', "\tEncryptionKey:\t" 		+ self.m_encryption_key )
 
 		self.__debug_log.output( 'Debug', "Confirm Settings End-----------" )
+	
+	#--------------------------------------
+	# __read_git_svn_bridge_backup
+	#--------------------------------------
+	def __read_git_svn_bridge_backup( self, conf ):
+
+		if conf.has_option( "git_svn_bridge_backup", "backup_bridge"):
+			self.m_backup_bridge	= conf.getboolean("git_svn_bridge_backup", "backup_bridge")
+			self.__debug_log.output( 'Debug', "backup_bridge: " + str( self.m_backup_bridge ) )
+		if self.m_backup_bridge is False:
+			return
+
+		if conf.has_option( "git_svn_bridge_backup", "bridge_repos"):
+			buf = conf.get("git_svn_bridge_backup", "bridge_repos")
+			self.__debug_log.output( 'Debug', "self.m_bridge_repos buf: " + buf )
+			self.m_bridge_repos		= buf.split( ',' )
+			for repo in self.m_bridge_repos:
+				self.__debug_log.output( 'Debug', "self.m_bridge_repos: " + repo )
+
+		if conf.has_option( "git_svn_bridge_backup", "encryption_key"):
+			self.m_encryption_key	= conf.get("git_svn_bridge_backup", "encryption_key")
+			self.__debug_log.output( 'Debug', "self.m_encryption_key: " + self.m_encryption_key )
 	
 	#--------------------------------------
 	# __read_file_server_attributes
@@ -143,8 +179,6 @@ class ConfigFile(object):
 	# __read_backup_attributes
 	#--------------------------------------
 	def __read_backup_attributes( self, conf ):
-		if conf.has_option( "backup_attribute", "root_user_pass"):
-			self.m_root_pass		= conf.get("backup_attribute", "root_user_pass")
 		if conf.has_option( "backup_attribute", "backup_del_size"):
 			self.m_backup_del_size	= conf.getint("backup_attribute", "backup_del_size")
 
@@ -179,11 +213,7 @@ class ConfigFile(object):
 
 		conf = ConfigParser.SafeConfigParser()
 		conf.read( self.__config_file )
-		
-		# set dump_date
-		now = datetime.datetime.now()
-		self.m_dump_date = now.strftime("%Y-%m-%d-%H-%M")
-		
+
 		# backup_attribute
 		self.__read_log_attributes( conf )
 		self.__read_email_attribute( conf )
@@ -198,6 +228,9 @@ class ConfigFile(object):
 			
 		# file_server_backup
 		self.__read_file_server_attributes( conf )
+		
+		# git_svn_bridge_backup
+		self.__read_git_svn_bridge_backup( conf )
 
 		# output
 		self.__output_config()

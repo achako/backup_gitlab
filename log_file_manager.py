@@ -1,4 +1,4 @@
-#######################################
+﻿#######################################
 # log_file_manager.py
 #
 #######################################
@@ -147,7 +147,7 @@ class LogFileManager(object):
 				sendmail.close()
 			
 	#--------------------------------------
-	# __read_backup_attributes
+	# set_currect_dir
 	#--------------------------------------
 	def set_currect_dir( self ):
 		# change directory to script directory
