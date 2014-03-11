@@ -121,8 +121,8 @@ def send_file_server( conf, backup_dir ):
 	_files = os.listdir( backup_dir )
 	# send files in backup directory
 	for _file in _files:
-		_send_file =  backup_dir + _file
-		strcommand = "lcd " + backup_dir +";put " + _send_file + ";"
+		_send_file =  backup_dir+ "/" + _file
+		strcommand = "lcd " + backup_dir +";put " + _file + ";"
 
 		smb_conf = ""
 
@@ -230,11 +230,14 @@ if __name__ == "__main__":
 		_logger.shutdown()
 		sys.exit()
 	
+	_copy_dir = conf.m_copy_dir
+
 	# zipFile
 	if zip_backups( conf.m_copy_dir ) == 1:
 		_logger.shutdown()
 		sys.exit()
 	conf.m_copy_dir = conf.m_copy_dir.rstrip( "/" ) + ".zip"
+	_copy_dir = os.path.dirname( conf.m_copy_dir )
 
 	#send to remote backup pc
 	if conf.m_use_remote_backup is True:
@@ -245,7 +248,7 @@ if __name__ == "__main__":
 
 	#send to file server
 	if conf.m_use_file_server is True:
-		result = send_file_server( conf, conf.m_copy_dir )
+		result = send_file_server( conf, _copy_dir )
 		if result == 1:
 			_logger.shutdown()
 			sys.exit()
