@@ -204,7 +204,7 @@ if __name__ == "__main__":
 	result	= conf.read_configuration()
 
 	if result == 1:
-		_logger.shutdown()
+		_logger.shutdown( "ConfigFile::read_configuration failed", False )
 		sys.exit()
 	
 	gitlab = BackupGitLab()
@@ -214,27 +214,27 @@ if __name__ == "__main__":
 	gitlab_conf = GitlabConfig()
 	result = gitlab_conf.readGitLabConfig( gitlab.GITLAB_PATH )
 	if result == 1:
-		_logger.shutdown()
+		_logger.shutdown( "GitlabConfig::readGitLabConfig failed", False )
 		sys.exit()
 	
 	#GitLabBackup
 	result = gitlab.backup( conf.m_copy_dir, gitlab_conf.m_backup_path )
 	if result == 1:
-		_logger.shutdown()
+		_logger.shutdown( "BackupGitLab::backup failed", False )
 		sys.exit()
 	
 	#GitSvnBridgeBackup
 	bridge = GitSvnBridgeBackup( conf )
 	result = bridge.backup( conf.m_copy_dir, conf.m_dump_date )
 	if result == 1:
-		_logger.shutdown()
+		_logger.shutdown( "GitSvnBridgeBackup::backup failed", False )
 		sys.exit()
 	
 	_copy_dir = conf.m_copy_dir
 
 	# zipFile
 	if zip_backups( conf.m_copy_dir ) == 1:
-		_logger.shutdown()
+		_logger.shutdown( "zip_backups failed", False )
 		sys.exit()
 	conf.m_copy_dir = conf.m_copy_dir.rstrip( "/" ) + ".zip"
 	_copy_dir = os.path.dirname( conf.m_copy_dir )
@@ -243,14 +243,14 @@ if __name__ == "__main__":
 	if conf.m_use_remote_backup is True:
 		result = send_remote_machine( conf, conf.m_copy_dir )
 		if result == 1:
-			_logger.shutdown()
+			_logger.shutdown( "send_remote_machine failed", False )
 			sys.exit()
 
 	#send to file server
 	if conf.m_use_file_server is True:
 		result = send_file_server( conf, _copy_dir )
 		if result == 1:
-			_logger.shutdown()
+			_logger.shutdown( "send_file_server failed", False )
 			sys.exit()
 
 	delete_local_backup( conf, conf.m_copy_dir )
@@ -259,7 +259,5 @@ if __name__ == "__main__":
 	
 	_message = 'GitLab backup was Success!\nURL: http://' + gitlab_conf.m_host_name + '/\n'
 	
-	_logger.send_mail( _message )
-	
-	_logger.shutdown()
+	_logger.shutdown( _message, True )
 	

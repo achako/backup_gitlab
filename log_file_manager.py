@@ -97,23 +97,31 @@ class LogFileManager(object):
 		self.__delete_old_logfile( conf.m_backup_log_dir, conf.m_backup_log_cnt )
 		
 		return 0
-		
+
 	#--------------------------------------
 	# shutdown
 	#--------------------------------------
-	def shutdown( self ):
+	def shutdown( self, _message, backup_result ):
 		logging.shutdown()
-	
+		self.send_mail( _message, backup_result )
+
 	#--------------------------------------
 	# sendErrorMail
 	#--------------------------------------
-	def send_mail( self, mailtext ):
+	def send_mail( self, mailtext, backup_result ):
 		
 		if self.__use_email is False:
 			return
+			
+		_subject = self.__email_subject
+		
+		if backup_result is True:
+			_subject += "Succeed"
+		else:
+			_subject += "Failed"
 		
 		msg 			= MIMEMultipart()
-		msg['Subject']	= Header( self.__email_subject,'utf-8' )
+		msg['Subject']	= Header( _subject,'utf-8' )
 		msg['From']		= self.__email_from
 		msg['To']		= self.__email_to
 		msg['Date']		= formatdate()
@@ -124,17 +132,19 @@ class LogFileManager(object):
 		
 		file = None
 		try:
-			file = open( self.__output_log_path )
-			attachment.set_payload( file.read() )
+			if os.path.exists( self.__output_log_path ) is True:
+				file = open( self.__output_log_path )
+				attachment.set_payload( file.read() )
 		except:
 			print( 'Error: ' + traceback.format_exc() )
 		finally:
 			if file != None:
 				file.close()
 
-		Encoders.encode_base64( attachment )
-		msg.attach( attachment )
-		attachment.add_header("Content-Disposition","attachment", filename=self.__output_log_path )
+		if os.path.exists( self.__output_log_path ) is True:
+			Encoders.encode_base64( attachment )
+			msg.attach( attachment )
+			attachment.add_header("Content-Disposition","attachment", filename=self.__output_log_path )
 
 		sendmail = None
 		try:
@@ -145,7 +155,7 @@ class LogFileManager(object):
 		finally:
 			if sendmail != None:
 				sendmail.close()
-			
+
 	#--------------------------------------
 	# set_currect_dir
 	#--------------------------------------
