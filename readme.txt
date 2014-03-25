@@ -11,6 +11,31 @@ settings.ini
 backup_gitlab.py
 	Gitlabのバックアップスクリプトです。
 
+//=================================
+// バックアップされるもの
+//=================================
+・ gitlabのバックアップデータです。
+　sudo -u git -H bundle exec rake gitlab:backup:create RAILS_ENV=production　で作成されるデータです。
+  数値_gitlab_backup.tarという形式です。
+  
+・ config
+  git-svn-bridgeのメール設定ファイルです。
+  /home/git/.config/git-svn-auth-manager/configにコピーします。
+
+・ setting.txt
+  git-svn-bridgeのENCRYPTION_KEY設定です。
+  /home/git/git-svn-bridge/github-git-svn-bridge-utils/git-svn-auth-manager/src/EncryptedUserRepository.csファイル内の
+  private const string ENCRYPTION_KEY = "CHANGETHIS";
+  の部分をこのテキストに書いてあるように書き換えてください。
+
+・ synchronize-git-svn.sh.config
+  git-svn-bridgeのスクリプト設定ファイルです。
+  /home/git/github-git-svn-bridge-utils/scripts/synchronize-git-svn.sh.configにコピーします。
+
+・ userinfo.db
+  git-svn-bridgeのユーザー管理データベースです。
+  /home/git/.config/git-svn-auth-manager/userinfo.dbにコピーします。
+
 
 //=================================
 // 設定手順
